@@ -10,14 +10,13 @@ typedef struct
     int cantidadPalabras;
     int cantidadCaracteres;
     char *titulo;
-    TreeMap *mapaPalabras;
 } tipoLibro;
 
 typedef struct
 {
     int totalArchivos;
-    List *listaLibros;
-    TreeMap *mapaTitulos;
+    TreeMap *mapaTitulos; //Clave: titulo libro ; valor: lista de variables tipo palabra (nombre palabra, cantidad de apariciones)
+    TreeMap *mapaPalabras; //Clave: palabra ; valor: lista de titulos que contienen esa palabra
 } tipoLibreria;
 
 //Función para poder hacer los "createMap"
@@ -32,13 +31,13 @@ int lower_than_string(void* key1, void* key2)
 tipoLibreria* crearLibreria()
 {
     tipoLibreria *aux = (tipoLibreria*) calloc (1, sizeof(tipoLibreria));
-    aux->listaLibros = createList();
     aux->mapaTitulos = createTreeMap(lower_than_string);
+    aux->mapaPalabras = createTreeMap(lower_than_string);
     aux->totalArchivos = 0;
     return aux;
 }
 
-void leerChar (char** nombreArchivo)
+void leerChar(char** nombreArchivo)
 {
   char nombre[200];
   int largo;
@@ -47,6 +46,37 @@ void leerChar (char** nombreArchivo)
   largo = strlen(nombre) + 1;
   (*nombreArchivo) = (char*) calloc (largo, sizeof(char));
   strcpy((*nombreArchivo), nombre);
+}
+
+void cargarDocumentos(tipoLibreria *libreria, char *todosLosArchivos)
+{
+    char separador[1] = " ";
+    char *archivoActual = strtok(todosLosArchivos, separador);
+
+    if (archivoActual != NULL)
+    {
+        while (archivoActual != NULL)
+        {
+            printf("\nNombre documento: %s\n", archivoActual);
+                        
+            FILE *archivo = fopen(archivoActual, "r");
+ 
+            if (archivo == NULL) 
+            {
+                printf("No existe este documento.\n");
+                archivoActual = strtok(NULL, separador);
+                continue;
+            }
+
+            while (fgets(archivoActual, 50, archivo) != NULL) 
+            {
+                //printf("%s", archivoActual);
+                //Aquí deberiamos empezar a guardar todos los datos que necesitamos de cada archivo
+            }
+                        
+            fclose(archivo);
+        }
+    }
 }
 
 void mostrarOpcionesMenu()
@@ -80,6 +110,10 @@ int main()
         {
             case 1:
             {
+                printf("\nIngrese todos los nombres de los documentos que desea cargar, cada uno separado por un espacio:\n");
+                char *todosLosArchivos = NULL;
+                leerChar(&todosLosArchivos);
+                cargarDocumentos(libreria, todosLosArchivos);
                 break;
             }
             case 2:
