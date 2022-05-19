@@ -37,12 +37,19 @@ int lower_than_string(void* key1, void* key2)
     return 0;
 }
 
+//Función para poder hacer los "createMap"
+int stringEqual(void * key1, void * key2) {
+    char * A = key1;
+    char * B = key2;
+    return strcmp(A, B) == 0;
+}
+
 tipoLibreria* crearLibreria()
 {
     tipoLibreria *aux = (tipoLibreria*) calloc (1, sizeof(tipoLibreria));
-    aux->mapaLibros = createMap(lower_than_string);
-    aux->mapaTitulos = createMap(lower_than_string);
-    aux->mapaPalabras = createMap(lower_than_string);
+    aux->mapaLibros = createMap(stringEqual);
+    aux->mapaTitulos = createMap(stringEqual);
+    aux->mapaPalabras = createMap(stringEqual);
     aux->totalArchivos = 0;
     return aux;
 }
@@ -67,7 +74,6 @@ char* next_word (FILE *f)
     else return NULL;
 }
 
-/*
 int hayQueEliminar(char c, char* string_chars)
 {
     for (int i=0 ; i<strlen(string_chars) ; i++)
@@ -96,51 +102,59 @@ char* quitar_caracteres(char* string, char* c)
     return string;
 }
 
-void contadorDePalabras(tipoLibreria *libreria, FILE *archivo)
+void guardarPalabras(tipoLibreria *libreria, FILE *archivo, tipoLibro *libro)
 {
-    tipoPalabra *palabra, *aux;
-    int k, largo;
+    List *aux;
+    tipoLibro *auxLibro;
     char *word = next_word(archivo);
-
-    while (word)
+    int flag, k;
+    
+    while (word != NULL)
     {
+        flag = 0;
+
         for (k = 0; word[k]; k++) word[k] = tolower(word[k]);
 
-        word = quitar_caracteres(word, "!?\";");
+        word = quitar_caracteres(word, "!?\";,.");
 
-        if (searchMap(libreria->mapaLibros, word) == NULL)
+        if (searchMap(libreria->mapaPalabras, word) == NULL)
         {
-            palabra = (tipoPalabra*) malloc(1 * sizeof(tipoPalabra));
+            List *listaLibros = createList();
 
-            largo = strlen(word) + 1;
-            palabra->word = (char*) malloc(largo * sizeof(char));
-
-            strcpy(palabra->word, word);
-            palabra->cont = 1;
-
-            insertMap(libreria->mapaLibros, word, palabra);
+            pushBack(listaLibros, libro);
+            insertMap(libreria->mapaPalabras, word, listaLibros);
         }
-        else
+
+        if (searchMap(libreria->mapaPalabras, word) != NULL)
         {
-            aux = searchMap(libreria->mapaLibros, word);
-            aux->cont++;
+            aux = searchMap(libreria->mapaPalabras, word);
+            auxLibro = firstList(aux);
+
+            while (auxLibro != NULL)
+            {
+                if (strcmp(auxLibro->titulo, libro->titulo) == 0) flag = 1;
+                auxLibro = nextList(aux);
+            }
+
+            if (flag == 0) pushBack(aux, libro);
         }
+
+        libro->cantidadPalabras++;
         word = next_word(archivo);
     }
 }
-*/
 
 void cargarDocumentos(tipoLibreria *libreria, char *todosLosArchivos)
 {
     const char separador[2] = " ";
     char *archivoActual = strtok(todosLosArchivos, separador);
-    char cadena[101];
+    char cadena[1024];
 
     if (archivoActual != NULL)
     {
         while (archivoActual != NULL)
         {
-            printf("\nNombre documento: %s\n", archivoActual);
+            printf("\nNombre del documento que se está cargando: %s\n", archivoActual);
                         
             FILE *archivo = fopen(archivoActual, "r");
  
@@ -153,44 +167,23 @@ void cargarDocumentos(tipoLibreria *libreria, char *todosLosArchivos)
 
             tipoLibro *libro = (tipoLibro*) malloc(1 * sizeof(tipoLibro));
             libro->cantidadPalabras = 0;
-            printf("%d\n", libro->cantidadPalabras);
             libro->id = atoi(archivoActual);
-            printf("%d\n", libro->id);
 
-            /*char x[1024];
-            int cont = 0;
-
-            while (1) 
-            {
-                int pos = ftell(archivo);
-                if (fscanf(archivo, " %1023s", x) == 1) cont++;
-                //printf("%s: pos %d\n",x,pos);
-                else break;
-            }*/
-
-            while (strcmp(fgets(cadena, 100, archivo), "\n") != 0)
+            while (strcmp(fgets(cadena, 1023, archivo), "\n") != 0)
             {
                 int largo = strlen(cadena) + 1;
-                printf("%d\n", largo);
                 libro->titulo = (char*) malloc(largo * sizeof(char));
                 strcpy(libro->titulo, cadena);
-                printf("%s\n", libro->titulo);
                 insertMap(libreria->mapaLibros, libro->titulo, libro);
-                printf("Insertó en el mapa.\n");
                 break;
             }
 
-            /*contadorDePalabras(libreria, archivo);
-            
-            while (fgets(archivoActual, 50, archivo)) 
-            {
-                printf("%s", archivoActual);
-                //Aquí deberiamos empezar a guardar todos los datos que necesitamos de cada archivo
-            }*/
+            printf("Por favor espere unos segundos...\n");
+            guardarPalabras(libreria, archivo, libro);
                         
             fclose(archivo);
             archivoActual = strtok(NULL, separador);
-            printf("Pasó al siguiente token.\n");
+            printf("Documento cargado correctamente.\n");
         }
     }
 }
@@ -201,12 +194,11 @@ void mostrarDocumentos(tipoLibreria *libreria)
 
     while (aux != NULL)
     {
-        printf("ID: %d\n", aux->id);
+        printf("ID libro: %d\n", aux->id);
         printf("Título: %s", aux->titulo);
-        printf("Cantidad de palabras: %d\n", aux->cantidadPalabras);
+        printf("Cantidad de palabras: %d\n\n", aux->cantidadPalabras);
 
         aux = nextMap(libreria->mapaLibros);
-        printf("Siguiente key.\n");
     }
 }
 
@@ -219,8 +211,8 @@ void buscarPalabra(tipoLibreria *libreria, char *palabra)
 
         while (recorrer != NULL)
         {
-            printf("%d\n", recorrer->id);
-            printf("%s\n", recorrer->titulo);
+            printf("ID libro: %d\n", recorrer->id);
+            printf("Título: %s\n", recorrer->titulo);
             recorrer = nextList(listaLibros);
         }
     }
@@ -266,7 +258,7 @@ int main()
             }
             case 2:
             {
-                printf("\nA continuación se mostrarán todos los documentos ordenados:\n");
+                printf("\nA continuación se mostrarán todos los documentos ordenados:\n\n");
                 mostrarDocumentos(libreria);
                 break;
             }
@@ -287,6 +279,7 @@ int main()
                 printf("\nIngrese una palabra para saber en que libros se encuentra:\n");
                 char *palabra = NULL;
                 leerChar(&palabra);
+                printf("\n");
                 buscarPalabra(libreria, palabra);
                 break;
             }
