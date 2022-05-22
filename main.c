@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <math.h>
 #include "treemap.h"
 #include "map.h"
 #include "list.h"
@@ -11,6 +12,7 @@ typedef struct
     char *word;
     float apariciones;
     float frecuencia;
+    float relevancia;
 } tipoPalabra;
 
 typedef struct
@@ -25,8 +27,9 @@ typedef struct
 typedef struct
 {
     int totalArchivos;
-    TreeMap *mapaLibros; //Clave: titulo libro ; valor: variable tipo libro     
-    Map *mapaIDs; //Clave: ID libro ; valor: lista de variables tipo palabra (nombre palabra, cantidad de apariciones, frecuencia)
+    TreeMap *mapaLibros; //Clave: titulo libro ; valor: variable tipo libro  
+    Map *mapaTitulos; //Clave: titulo libro ; valor: lista de variables tipo palabra (nombre, apariciones, frecuencia, relevancia)   
+    Map *mapaIDs; //Clave: ID libro ; valor: lista de variables tipo palabra (nombre, apariciones, frecuencia, relevancia)
     Map *mapaPalabras; //Clave: palabra ; valor: lista de libros que contienen esa palabra
 } tipoLibreria;
 
@@ -50,6 +53,7 @@ tipoLibreria* crearLibreria()
 {
     tipoLibreria *aux = (tipoLibreria*) calloc (1, sizeof(tipoLibreria));
     aux->mapaLibros = createTreeMap(lower_than_string);
+    aux->mapaTitulos = createMap(stringEqual);
     aux->mapaIDs = createMap(stringEqual);
     aux->mapaPalabras = createMap(stringEqual);
     aux->totalArchivos = 0;
@@ -58,16 +62,16 @@ tipoLibreria* crearLibreria()
 
 void leerChar(char** nombreArchivo)
 {
-  char nombre[200];
-  int largo;
-  scanf("%[^\n]s", nombre);
-  getchar();
-  largo = strlen(nombre) + 1;
-  (*nombreArchivo) = (char*) calloc (largo, sizeof(char));
-  strcpy((*nombreArchivo), nombre);
+    char nombre[200];
+    int largo;
+    scanf("%[^\n]s", nombre);
+    getchar();
+    largo = strlen(nombre) + 1;
+    (*nombreArchivo) = (char*) calloc (largo, sizeof(char));
+    strcpy((*nombreArchivo), nombre);
 }
 
-char* next_word (FILE *f) 
+char *next_word(FILE *f) 
 {
     char x[1024];
     //assumes no word exceeds length of 1023 
@@ -84,7 +88,7 @@ int hayQueEliminar(char c, char* string_chars)
     return 0;
 }
 
-char* quitar_caracteres(char* string, char* c)
+char *quitar_caracteres(char* string, char* c)
 {
     int i, j;
 
@@ -144,7 +148,6 @@ void guardarPalabras(tipoLibreria *libreria, FILE *archivo, tipoLibro *libro)
     }
 }
 
-
 void repeticionesPalabras(tipoLibreria *libreria, FILE *archivo, tipoLibro *libro)
 {
     tipoPalabra *auxPalabra, *auxPalabra2 , *aux;
@@ -167,6 +170,7 @@ void repeticionesPalabras(tipoLibreria *libreria, FILE *archivo, tipoLibro *libr
         strcpy(palabra->word, word);
         palabra->apariciones = 1;
         palabra->frecuencia = 0;
+        palabra->relevancia = 0;
 
         auxPalabra = firstList(listaPalabrasLibro);
 
@@ -245,6 +249,7 @@ void repeticionesPalabras(tipoLibreria *libreria, FILE *archivo, tipoLibro *libr
     }*/
 
     insertMap(libreria->mapaIDs, libro->IDlibro, listaPalabrasLibro);
+    insertMap(libreria->mapaTitulos, libro->titulo, listaPalabrasLibro);
 }
 
 void cargarDocumentos(tipoLibreria *libreria, char *todosLosArchivos)
@@ -318,12 +323,20 @@ void buscarLibroPorTitulo(tipoLibreria *libreria, char *todasLasPalabras)
 {
     const char separador[2] = " ";
     char *palabra, *titulo, *palabraTitulo;
-    int largo, flag, k;
+    int largo, flag, i, k;
     int cont = 0;
 
-    largo = strlen(todasLasPalabras) + 1;
-    char *todasLasPalabrasAux = (char*) malloc(largo * sizeof(char));
-    todasLasPalabrasAux = todasLasPalabras;
+    int palabrasIngresadas = 0;
+    char arregloPalabrasIngresadas[1024][1024] = {""};
+
+    palabra = strtok(todasLasPalabras, separador);
+
+    while (palabra != NULL)
+    {
+        strcpy(arregloPalabrasIngresadas[palabrasIngresadas], palabra);
+        palabrasIngresadas++;
+        palabra = strtok(NULL, separador);
+    }
 
     Pair *aux = firstTreeMap(libreria->mapaLibros);
 
@@ -334,38 +347,33 @@ void buscarLibroPorTitulo(tipoLibreria *libreria, char *todasLasPalabras)
 
         flag = 0;
 
-        todasLasPalabras = todasLasPalabrasAux;
-        palabra = strtok(todasLasPalabras, separador);
-
-        while (palabra != NULL)
+        for (i = 0 ; i < palabrasIngresadas ; i++)
         {
             strcpy(titulo, aux->key);
             palabraTitulo = strtok(titulo, separador);
-            
+
             while (palabraTitulo != NULL)
             {
-                for (k = 0; palabraTitulo[k]; k++) palabraTitulo[k] = tolower(palabraTitulo[k]);
+                for (k = 0 ; palabraTitulo[k] ; k++) palabraTitulo[k] = tolower(palabraTitulo[k]);
                 palabraTitulo = quitar_caracteres(palabraTitulo, "!?\";,.");
 
-                if (strcmp(palabra, palabraTitulo) == 0) 
+                if (strcmp(arregloPalabrasIngresadas[i], palabraTitulo) == 0) 
                 {
                     flag = 1;
                     break;
                 }
 
-                if (strcmp(palabra, palabraTitulo) != 0) flag = 0;
+                if (strcmp(arregloPalabrasIngresadas[i], palabraTitulo) != 0) flag = 0;
         
                 palabraTitulo = strtok(NULL, separador);
             }
 
             if (flag == 0) break;
-
-            palabra = strtok(NULL, separador);
         }
 
         if (flag == 1)
         {
-            printf("%s contiene todas las palabras ingresadas.\n\n", (char*) aux->key);
+            printf("%s contiene todas las palabras ingresadas en su título.\n\n", (char*) aux->key);
             cont++;
         }
 
@@ -386,15 +394,77 @@ void mostrarPalabrasMayorFrecuencia(tipoLibreria *libreria, int *id)
 
         while (recorrer != NULL)
         {
-            printf("Palabra: %s\n", recorrer->word);
-            printf("Apariciones: %.0f\n", recorrer->apariciones);
-            printf("Frecuencia: %f\n", recorrer->frecuencia);
+            printf("Palabra: %-20s", recorrer->word);
+            printf("Apariciones: %-20.0f", recorrer->apariciones);
+            printf("Frecuencia: %-20f\n", recorrer->frecuencia);
             recorrer = nextList(listaPalabras);
             cont++;
             if (cont == 10) break;
         }
     }
     else printf("El ID ingresado no pertenece a ningún libro.\n");
+}
+
+int contarDocumentosConPalabra(tipoLibreria *libreria, char *palabra)
+{
+    int cont = 0;
+
+    if (searchMap(libreria->mapaPalabras, palabra) != NULL)
+    {
+        List *listaLibros = searchMap(libreria->mapaPalabras, palabra);
+        tipoLibro *recorrer = firstList(listaLibros);
+
+        while (recorrer != NULL)
+        {
+            cont++;
+            recorrer = nextList(listaLibros);
+        }
+    }
+
+    return cont;
+}
+
+void mostrarPalabrasMayorRelevancia(tipoLibreria *libreria, char *titulo)
+{
+    int totalLibrosConPalabra = 0;
+
+    if (searchTreeMap(libreria->mapaLibros, titulo) != NULL)
+    {
+        Pair *aux = searchTreeMap(libreria->mapaLibros, titulo);
+        tipoLibro *libro;
+
+        List *listaPalabras = searchMap(libreria->mapaTitulos, titulo);
+        tipoPalabra *recorrer = firstList(listaPalabras);
+
+        while (recorrer != NULL)
+        {
+            totalLibrosConPalabra = contarDocumentosConPalabra(libreria, recorrer->word);
+            recorrer->relevancia = ((recorrer->apariciones) / (libro->cantidadPalabras)) * log(libreria->totalArchivos / totalLibrosConPalabra);
+            recorrer = nextList(listaPalabras);
+        }
+    }
+    else 
+    {
+        printf("El título ingresado no pertenece a ningún libro.\n");
+        return;
+    }
+
+    int cont = 0;
+
+    if (searchMap(libreria->mapaTitulos, titulo) != NULL)
+    {
+        List *listaPalabras = searchMap(libreria->mapaTitulos, titulo);
+        tipoPalabra *recorrer = firstList(listaPalabras);
+
+        while (recorrer != NULL)
+        {
+            printf("Palabra: %s\n", recorrer->word);
+            printf("Relevancia: %.0f\n", recorrer->relevancia);
+            recorrer = nextList(listaPalabras);
+            cont++;
+            if (cont == 10) break;
+        }
+    }
 }
 
 void buscarPalabra(tipoLibreria *libreria, char *palabra)
@@ -476,6 +546,10 @@ int main()
             }
             case 5:
             {
+                printf("\nIngrese el título de un libro para conocer sus 10 palabras más relevantes:\n");
+                char *titulo = NULL;
+                leerChar(&titulo);
+                mostrarPalabrasMayorRelevancia(libreria, titulo);
                 break;
             }
             case 6:
