@@ -12,6 +12,7 @@ typedef struct
     char *word;
     float apariciones;
     float frecuencia;
+    char frecString[10];
     float relevancia;
 } tipoPalabra;
 
@@ -30,6 +31,7 @@ typedef struct
     TreeMap *mapaLibros; //Clave: titulo libro ; valor: variable tipo libro  
     Map *mapaTitulos; //Clave: titulo libro ; valor: lista de variables tipo palabra (nombre, apariciones, frecuencia, relevancia)   
     Map *mapaIDs; //Clave: ID libro ; valor: lista de variables tipo palabra (nombre, apariciones, frecuencia, relevancia)
+    TreeMap *mapaFrecuencia; //Clave: frecuencia palabra ; valor: variable tipo palabra (contiene todos los datos de esa palabra)
     Map *mapaPalabras; //Clave: palabra ; valor: lista de libros que contienen esa palabra
 } tipoLibreria;
 
@@ -55,6 +57,7 @@ tipoLibreria* crearLibreria()
     aux->mapaLibros = createTreeMap(lower_than_string);
     aux->mapaTitulos = createMap(stringEqual);
     aux->mapaIDs = createMap(stringEqual);
+    aux->mapaFrecuencia = createTreeMap(lower_than_string);
     aux->mapaPalabras = createMap(stringEqual);
     aux->totalArchivos = 0;
     return aux;
@@ -187,7 +190,8 @@ void repeticionesPalabras(tipoLibreria *libreria, FILE *archivo, tipoLibro *libr
             {
                 flag = 0;
                 auxPalabra->apariciones++;
-                auxPalabra->frecuencia = (auxPalabra->apariciones) / (libro->cantidadPalabras);
+                auxPalabra->frecuencia = (auxPalabra->apariciones) / (libro->cantidadPalabras); 
+                gcvt(auxPalabra->frecuencia, 10, auxPalabra->frecString);
                 break;
             }
             auxPalabra = nextList(listaPalabrasLibro);
@@ -203,27 +207,51 @@ void repeticionesPalabras(tipoLibreria *libreria, FILE *archivo, tipoLibro *libr
         word = next_word(archivo);
     }
 
+    auxPalabra = firstList(listaPalabrasLibro);
+
+    while (auxPalabra != NULL)
+    {
+        insertTreeMap(libreria->mapaFrecuencia, auxPalabra->frecString, auxPalabra);
+        auxPalabra = nextList(listaPalabrasLibro);
+    }
+
     /*printf("Largo lista: %d\n", largoLista);
     printf("Se cae en el bubble sort\n");
 
+    printf("Lista completa: ");
+
+    aux = firstList(listaPalabrasLibro);
+
+    while (aux != NULL)
+    {
+        printf("%s (%.0f) ", aux->word, aux->apariciones);
+        aux = nextList(listaPalabrasLibro);
+    }
+
+    printf("\n");
+
     auxPalabra = firstList(listaPalabrasLibro);
     auxPalabra2 = auxPalabra;
-    auxPalabra2 = nextList(listaPalabrasLibro);*/
+    auxPalabra2 = nextList(listaPalabrasLibro);
 
-    //while (auxPalabra2 != NULL)
-    //{
-        //if (auxPalabra->frecuencia < auxPalabra2->frecuencia)
-        //{
-            /*aux = auxPalabra2;
+    while (auxPalabra2 != NULL)
+    {
+        if (auxPalabra->frecuencia < auxPalabra2->frecuencia)
+        {
+            printf("AuxPalabra antes: %s\n", auxPalabra->word);
+            printf("AuxPalabra2 antes:%s\n", auxPalabra2->word);
+            aux = auxPalabra2;
             auxPalabra2 = auxPalabra;
-            auxPalabra = aux;*/
+            auxPalabra = aux;
+            printf("AuxPalabra despues: %s\n", auxPalabra->word);
+            printf("AuxPalabra2 despues:%s\n", auxPalabra2->word);
             //pushCurrent(listaPalabrasLibro, auxPalabra);
             //pushBack(listaPalabrasLibro, aux);
-        //}
+        }
 
-        //auxPalabra = nextList(listaPalabrasLibro);
-        //auxPalabra2 = nextList(listaPalabrasLibro);
-    //}
+        auxPalabra = nextList(listaPalabrasLibro);
+        auxPalabra2 = nextList(listaPalabrasLibro);
+    }*/
 
     /*for (i = 0 ; i < largoLista - 1 ; i++)
     {
@@ -248,8 +276,8 @@ void repeticionesPalabras(tipoLibreria *libreria, FILE *archivo, tipoLibro *libr
         }
     }*/
 
-    insertMap(libreria->mapaIDs, libro->IDlibro, listaPalabrasLibro);
-    insertMap(libreria->mapaTitulos, libro->titulo, listaPalabrasLibro);
+    insertMap(libreria->mapaIDs, libro->IDlibro, libreria->mapaFrecuencia);
+    insertMap(libreria->mapaTitulos, libro->titulo, libreria->mapaFrecuencia);
 }
 
 void cargarDocumentos(tipoLibreria *libreria, char *todosLosArchivos)
@@ -385,19 +413,21 @@ void buscarLibroPorTitulo(tipoLibreria *libreria, char *todasLasPalabras)
 
 void mostrarPalabrasMayorFrecuencia(tipoLibreria *libreria, int *id)
 {
+    tipoPalabra *palabra;
     int cont = 0;
 
     if (searchMap(libreria->mapaIDs, id) != NULL)
     {
-        List *listaPalabras = searchMap(libreria->mapaIDs, id);
-        tipoPalabra *recorrer = firstList(listaPalabras);
+        TreeMap *mapaFrecuencias = searchMap(libreria->mapaIDs, id);
+        Pair *aux = firstTreeMap(libreria->mapaFrecuencia);
 
-        while (recorrer != NULL)
+        while (aux != NULL)
         {
-            printf("Palabra: %-20s", recorrer->word);
-            printf("Apariciones: %-20.0f", recorrer->apariciones);
-            printf("Frecuencia: %-20f\n", recorrer->frecuencia);
-            recorrer = nextList(listaPalabras);
+            palabra = aux->value;
+            printf("Palabra: %-20s", palabra->word);
+            printf("Apariciones: %-20.0f", palabra->apariciones);
+            printf("Frecuencia: %-20f\n", palabra->frecuencia);
+            aux = nextTreeMap(libreria->mapaFrecuencia);
             cont++;
             if (cont == 10) break;
         }
