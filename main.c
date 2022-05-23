@@ -21,7 +21,6 @@ typedef struct
     int id;
     int *IDlibro;
     float cantidadPalabras;
-    int cantidadCaracteres;
     char *titulo;
 } tipoLibro;
 
@@ -35,7 +34,7 @@ typedef struct
     Map *mapaPalabras; //Clave: palabra ; valor: lista de libros que contienen esa palabra
 } tipoLibreria;
 
-//Función para poder hacer los "createMap"
+//Función para poder hacer los "createMap" de los TreeMap
 int lower_than_string(void* key1, void* key2)
 {
     char* k1=(char*) key1;
@@ -44,13 +43,14 @@ int lower_than_string(void* key1, void* key2)
     return 0;
 }
 
-//Función para poder hacer los "createMap"
+//Función para poder hacer los "createMap" de los Map
 int stringEqual(void * key1, void * key2) {
     char * A = key1;
     char * B = key2;
     return strcmp(A, B) == 0;
 }
 
+//Función para crear la variable que almacenará todos los mapas
 tipoLibreria* crearLibreria()
 {
     tipoLibreria *aux = (tipoLibreria*) calloc (1, sizeof(tipoLibreria));
@@ -82,6 +82,7 @@ char *next_word(FILE *f)
     else return NULL;
 }
 
+//Función implementada por Matías Barrientos 
 int hayQueEliminar(char c, char* string_chars)
 {
     for (int i=0 ; i<strlen(string_chars) ; i++)
@@ -91,6 +92,7 @@ int hayQueEliminar(char c, char* string_chars)
     return 0;
 }
 
+//Función implementada por Matías Barrientos para eliminar caracteres de una palabra
 char *quitar_caracteres(char* string, char* c)
 {
     int i, j;
@@ -110,6 +112,8 @@ char *quitar_caracteres(char* string, char* c)
     return string;
 }
 
+//Función para crear un mapa en el que cada tupla está compuesta de una palabra (clave) y una lista
+//de los libros que contienen esa palabra en su contenido (valor)
 void guardarPalabras(tipoLibreria *libreria, FILE *archivo, tipoLibro *libro)
 {
     List *aux;
@@ -117,6 +121,7 @@ void guardarPalabras(tipoLibreria *libreria, FILE *archivo, tipoLibro *libro)
     char *word = next_word(archivo);
     int flag, k;
     
+    //Se recorre el libro palabra a palabra
     while (word != NULL)
     {
         flag = 0;
@@ -125,6 +130,7 @@ void guardarPalabras(tipoLibreria *libreria, FILE *archivo, tipoLibro *libro)
 
         word = quitar_caracteres(word, "!?\";,.");
 
+        //Si la palabra no está, se crea una lista, se le ingresa el libro y luego se insertan la palabra y la lista al mapa
         if (searchMap(libreria->mapaPalabras, word) == NULL)
         {
             List *listaLibros = createList();
@@ -132,6 +138,8 @@ void guardarPalabras(tipoLibreria *libreria, FILE *archivo, tipoLibro *libro)
             insertMap(libreria->mapaPalabras, word, listaLibros);
         }
 
+        //Si la palabra ya estaba, se recorre su lista de libros asociada para saber si el libro que se está leyendo ya se
+        //insertó en ella, si ya está, no se hace nada, si no está, se inserta
         if (searchMap(libreria->mapaPalabras, word) != NULL)
         {
             aux = searchMap(libreria->mapaPalabras, word);
@@ -151,14 +159,16 @@ void guardarPalabras(tipoLibreria *libreria, FILE *archivo, tipoLibro *libro)
     }
 }
 
+//Función para calcular las apariciones y frecuencia de cada palabra
 void repeticionesPalabras(tipoLibreria *libreria, FILE *archivo, tipoLibro *libro)
 {
     tipoPalabra *auxPalabra, *auxPalabra2 , *aux;
-    List *listaPalabrasLibro = createList();
+    List *listaPalabrasLibro = createList(); //Se crea un alista que va a contener todas las palabras de cada libro (sin repetir)
     char *word = next_word(archivo);
     int largo, flag, i, k;
     int largoLista = 0;
 
+    //Se recorre el libro palabra a palabra
     while (word != NULL)
     {
         flag = 0;
@@ -166,7 +176,8 @@ void repeticionesPalabras(tipoLibreria *libreria, FILE *archivo, tipoLibro *libr
         for (k = 0; word[k]; k++) word[k] = tolower(word[k]);
 
         word = quitar_caracteres(word, "!?\";,.");
-       
+
+        //Se crea una variable que almacenará todos los datos de cada palabra
         tipoPalabra *palabra = (tipoPalabra*) malloc(1 * sizeof(tipoPalabra));
         largo = strlen(word) + 1;
         palabra->word = (char*) malloc(largo * sizeof(char));
@@ -175,10 +186,12 @@ void repeticionesPalabras(tipoLibreria *libreria, FILE *archivo, tipoLibro *libr
         palabra->frecuencia = 0;
         palabra->relevancia = 0;
 
+        //Se recorre la lista
         auxPalabra = firstList(listaPalabrasLibro);
 
         do
         {
+            //Si la lista está vacía o la palabra no se encuentra en ella, entonces la palabra se agrega a la lista
             if (auxPalabra == NULL) 
             {
                 flag = 1;
@@ -186,6 +199,8 @@ void repeticionesPalabras(tipoLibreria *libreria, FILE *archivo, tipoLibro *libr
             }
                 
             if (strcmp(auxPalabra->word, palabra->word) != 0) flag = 1;
+
+            //Si la palabra se encuentra, se aumentan sus apariciones y frecuencia
             if (strcmp(auxPalabra->word, palabra->word) == 0) 
             {
                 flag = 0;
@@ -207,6 +222,7 @@ void repeticionesPalabras(tipoLibreria *libreria, FILE *archivo, tipoLibro *libr
         word = next_word(archivo);
     }
 
+    //Al terminar de leer el libro, se recorre la lista creada y cada una de sus variables se almacenan en un mapa con clave frecuencia
     auxPalabra = firstList(listaPalabrasLibro);
 
     while (auxPalabra != NULL)
@@ -215,79 +231,22 @@ void repeticionesPalabras(tipoLibreria *libreria, FILE *archivo, tipoLibro *libr
         auxPalabra = nextList(listaPalabrasLibro);
     }
 
-    /*printf("Largo lista: %d\n", largoLista);
-    printf("Se cae en el bubble sort\n");
-
-    printf("Lista completa: ");
-
-    aux = firstList(listaPalabrasLibro);
-
-    while (aux != NULL)
-    {
-        printf("%s (%.0f) ", aux->word, aux->apariciones);
-        aux = nextList(listaPalabrasLibro);
-    }
-
-    printf("\n");
-
-    auxPalabra = firstList(listaPalabrasLibro);
-    auxPalabra2 = auxPalabra;
-    auxPalabra2 = nextList(listaPalabrasLibro);
-
-    while (auxPalabra2 != NULL)
-    {
-        if (auxPalabra->frecuencia < auxPalabra2->frecuencia)
-        {
-            printf("AuxPalabra antes: %s\n", auxPalabra->word);
-            printf("AuxPalabra2 antes:%s\n", auxPalabra2->word);
-            aux = auxPalabra2;
-            auxPalabra2 = auxPalabra;
-            auxPalabra = aux;
-            printf("AuxPalabra despues: %s\n", auxPalabra->word);
-            printf("AuxPalabra2 despues:%s\n", auxPalabra2->word);
-            //pushCurrent(listaPalabrasLibro, auxPalabra);
-            //pushBack(listaPalabrasLibro, aux);
-        }
-
-        auxPalabra = nextList(listaPalabrasLibro);
-        auxPalabra2 = nextList(listaPalabrasLibro);
-    }*/
-
-    /*for (i = 0 ; i < largoLista - 1 ; i++)
-    {
-        auxPalabra = firstList(listaPalabrasLibro);
-        auxPalabra2 = auxPalabra;
-
-        for (k = 0 ; k < largoLista - i - 1 ; k++)
-        {
-            auxPalabra2 = nextList(listaPalabrasLibro);
-            //if (auxPalabra2 == NULL) break;
-
-            if (auxPalabra->frecuencia < auxPalabra2->frecuencia)
-            {
-                aux = auxPalabra2;
-                auxPalabra2 = auxPalabra;
-                auxPalabra = aux;
-                //printf("Palabra: %s --- Apariciones: %.0f\n", auxPalabra2->word, auxPalabra2->apariciones);
-            }
-
-            auxPalabra = nextList(listaPalabrasLibro);
-            //if (auxPalabra == NULL) break;
-        }
-    }*/
-
+    //El mapa de frecuencias se inserta como clave en los mapas de ID y título
     insertMap(libreria->mapaIDs, libro->IDlibro, libreria->mapaFrecuencia);
     insertMap(libreria->mapaTitulos, libro->titulo, libreria->mapaFrecuencia);
 }
 
+//Función para leer cada archivo que el usuario ingresa
 void cargarDocumentos(tipoLibreria *libreria, char *todosLosArchivos)
 {
     const char separador[2] = " ";
-    char *archivoActual = strtok(todosLosArchivos, separador);
+    char *archivoActual = strtok(todosLosArchivos, separador); //Se usa esta función para separar el string con todos los archivos
+                                                               //en strings más pequeños (en este caso separamos por espacio)
     char cadena[1024];
 
     if (archivoActual != NULL)
     {
+        //Se lee hasta que se acaben los documentos
         while (archivoActual != NULL)
         {
             printf("\nNombre del documento que se está cargando: %s\n", archivoActual);
@@ -301,12 +260,14 @@ void cargarDocumentos(tipoLibreria *libreria, char *todosLosArchivos)
                 continue;
             }
 
+            //Se crea una variable que almacena los datos del libro que se está leyendo
             tipoLibro *libro = (tipoLibro*) malloc(1 * sizeof(tipoLibro));
             libro->cantidadPalabras = 0;
             libro->id = atoi(archivoActual);
             libro->IDlibro = (int*) malloc(1 * sizeof(int));
             libro->IDlibro = &(libro->id);
 
+            //Se lee la primera línea del archivo y se guarda como el título del libro
             while (strcmp(fgets(cadena, 1023, archivo), "\n") != 0)
             {
                 int largo = strlen(cadena) + 1;
@@ -331,6 +292,7 @@ void cargarDocumentos(tipoLibreria *libreria, char *todosLosArchivos)
     }
 }
 
+//Función para mostrar los documentos cargados y sus datos en orden alfabético
 void mostrarDocumentos(tipoLibreria *libreria)
 {
     Pair *aux = firstTreeMap(libreria->mapaLibros);
@@ -347,6 +309,7 @@ void mostrarDocumentos(tipoLibreria *libreria)
     }
 }
 
+//Función para buscar los títulos de libros que contienen todas las palabras ingresadas por el usuario
 void buscarLibroPorTitulo(tipoLibreria *libreria, char *todasLasPalabras)
 {
     const char separador[2] = " ";
@@ -359,6 +322,7 @@ void buscarLibroPorTitulo(tipoLibreria *libreria, char *todasLasPalabras)
 
     palabra = strtok(todasLasPalabras, separador);
 
+    //Las palabras ingresadas por el usuario se guardan en una matriz (arreglo de arreglos)
     while (palabra != NULL)
     {
         strcpy(arregloPalabrasIngresadas[palabrasIngresadas], palabra);
@@ -368,6 +332,7 @@ void buscarLibroPorTitulo(tipoLibreria *libreria, char *todasLasPalabras)
 
     Pair *aux = firstTreeMap(libreria->mapaLibros);
 
+    //Se recorre hasta leer todos los libros cargados en la aplicación
     while (aux != NULL)
     {
         largo = strlen(aux->key) + 1;
@@ -375,16 +340,19 @@ void buscarLibroPorTitulo(tipoLibreria *libreria, char *todasLasPalabras)
 
         flag = 0;
 
+        //Se lee cada palabra ingresada por el usuario
         for (i = 0 ; i < palabrasIngresadas ; i++)
         {
             strcpy(titulo, aux->key);
             palabraTitulo = strtok(titulo, separador);
 
+            //Se lee cada palabra presente en el título del libro que se está leyendo
             while (palabraTitulo != NULL)
             {
                 for (k = 0 ; palabraTitulo[k] ; k++) palabraTitulo[k] = tolower(palabraTitulo[k]);
                 palabraTitulo = quitar_caracteres(palabraTitulo, "!?\";,.");
 
+                //Se compara la palabra actual del usuario con cada palabra del título del libro actual
                 if (strcmp(arregloPalabrasIngresadas[i], palabraTitulo) == 0) 
                 {
                     flag = 1;
@@ -416,8 +384,10 @@ void mostrarPalabrasMayorFrecuencia(tipoLibreria *libreria, int *id)
     tipoPalabra *palabra;
     int cont = 0;
 
+    //Se busca el ID ingresado
     if (searchMap(libreria->mapaIDs, id) != NULL)
     {
+        //Si el ID existe, entonces se busca su mapa de frecuencias asociado y se recorre
         TreeMap *mapaFrecuencias = searchMap(libreria->mapaIDs, id);
         Pair *aux = firstTreeMap(libreria->mapaFrecuencia);
 
@@ -497,10 +467,12 @@ void mostrarPalabrasMayorRelevancia(tipoLibreria *libreria, char *titulo)
     }
 }
 
+//Función para buscar una palabra que se encuentre en el contenido de los libros cargados
 void buscarPalabra(tipoLibreria *libreria, char *palabra)
 {
     if (searchMap(libreria->mapaPalabras, palabra) != NULL)
     {
+        //Si la palabra está en un libro, se recorre la lista de los libros que la contienen
         List *listaLibros = searchMap(libreria->mapaPalabras, palabra);
         tipoLibro *recorrer = firstList(listaLibros);
 
@@ -512,6 +484,11 @@ void buscarPalabra(tipoLibreria *libreria, char *palabra)
         }
     }
     else printf("Ningún libro contiene esta palabra en su contenido.\n");
+}
+
+void palabraEnContexto(tipoLibreria *libreria, char *titulo, char *palabra)
+{
+    return;
 }
 
 void mostrarOpcionesMenu()
@@ -529,7 +506,7 @@ void mostrarOpcionesMenu()
 
 int main() 
 {
-    tipoLibreria *libreria = crearLibreria(); 
+    tipoLibreria *libreria = crearLibreria(); //Se crea la variable que almacenará todos los mapas del programa
     libreria->totalArchivos = 0;
     int opcion;
 
@@ -593,6 +570,12 @@ int main()
             }
             case 7:
             {
+                printf("\nIngrese el título de un libro y una palabra a buscar para conocer sus apariciones en el contexto del libro:\n");
+                char *titulo = NULL;
+                leerChar(&titulo);
+                char *palabra = NULL;
+                leerChar(&palabra);
+                palabraEnContexto(libreria, titulo, palabra);
                 break;
             }
             case 8:
