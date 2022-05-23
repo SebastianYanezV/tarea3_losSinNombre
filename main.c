@@ -270,15 +270,20 @@ void cargarDocumentos(tipoLibreria *libreria, char *todosLosArchivos)
             //Se usa el fseek para moverse directamente hasta el inicio del título del libro en la primera línea del archivo
             fseek(archivo, 33, SEEK_SET);
 
+            fgets(cadena, 1023, archivo);
+
             //Se lee la primera línea del archivo y se guarda como el título del libro
-            while (strcmp(fgets(cadena, 1023, archivo), "\n") != 0)
-            {
-                int largo = strlen(cadena) + 1;
-                libro->titulo = (char*) malloc(largo * sizeof(char));
-                strcpy(libro->titulo, cadena);
-                insertTreeMap(libreria->mapaLibros, libro->titulo, libro);
-                break;
-            }
+            int largo = strlen(cadena) + 1;
+            libro->titulo = (char*) malloc(largo * sizeof(char));
+            strcpy(libro->titulo, cadena);
+
+            char *newline = strchr(libro->titulo, '\n');
+            if (newline != NULL) *newline = '\0';
+
+            char *cr = strchr(libro->titulo, '\r');
+            if(cr != NULL) *cr = '\0';
+
+            insertTreeMap(libreria->mapaLibros, libro->titulo, libro);
 
             printf("Por favor espere unos segundos...\n");
             guardarPalabras(libreria, archivo, libro);
@@ -305,7 +310,7 @@ void mostrarDocumentos(tipoLibreria *libreria)
     {
         libro = aux->value;
         printf("ID libro: %d\n", libro->id);
-        printf("Título: %s", (char*) aux->key);
+        printf("Título: %s\n", (char*) aux->key);
         printf("Cantidad de palabras: %.0f\n\n", libro->cantidadPalabras);
 
         aux = nextTreeMap(libreria->mapaLibros);
