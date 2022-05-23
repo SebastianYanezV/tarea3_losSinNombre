@@ -16,17 +16,23 @@ de esta manera se creara main.exe, y para poder ejecutarlo basta con introducir 
 Aspectos positivos:
 
 Nicolas Carvallo:
-Sebastián Yáñez: 
-Felipe Zepeda: 
+
+Sebastián Yáñez: responsabilidad y dedicación al momento de trabajar.
+
+Felipe Zepeda: puede dar aportes sobre como reparar errores.
 
 Aspectos a mejorar:
 
 Nicolas Carvallo: 
-Sebastián Yáñez: 
-Felipe Zepeda: 
+
+Sebastián Yáñez: hacer un mejor manejo del tiempo al trabajar.
+
+Felipe Zepeda: dar mas aporte al equipo.
 
 (4) Puntos de premio/castigo:
 
 Integrante Nicolas: 0
+
 Integrante Sebastian: 0
+
 Integrante Felipe: 0
