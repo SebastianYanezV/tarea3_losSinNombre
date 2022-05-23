@@ -413,6 +413,7 @@ void mostrarPalabrasMayorFrecuencia(tipoLibreria *libreria, int *id)
     else printf("El ID ingresado no pertenece a ningún libro.\n");
 }
 
+//Función para contar los documentos que contienen la palabra buscada 
 int contarDocumentosConPalabra(tipoLibreria *libreria, char *palabra)
 {
     int cont = 0;
@@ -432,6 +433,7 @@ int contarDocumentosConPalabra(tipoLibreria *libreria, char *palabra)
     return cont;
 }
 
+//Función para mostrar las palabras con mayor relevancia
 void mostrarPalabrasMayorRelevancia(tipoLibreria *libreria, char *titulo)
 {
     int totalLibrosConPalabra = 0;
@@ -441,14 +443,16 @@ void mostrarPalabrasMayorRelevancia(tipoLibreria *libreria, char *titulo)
         Pair *aux = searchTreeMap(libreria->mapaLibros, titulo);
         tipoLibro *libro = aux->value;
 
-        List *listaPalabras = searchMap(libreria->mapaTitulos, titulo);
-        tipoPalabra *recorrer = firstList(listaPalabras);
+        TreeMap *mapaFrecuencias = searchMap(libreria->mapaTitulos, titulo);
+        Pair *recorrer = firstTreeMap(libreria->mapaFrecuencia);
+        tipoPalabra *palabra;
 
         while (recorrer != NULL)
         {
-            totalLibrosConPalabra = contarDocumentosConPalabra(libreria, recorrer->word);
-            recorrer->relevancia = ((recorrer->apariciones) / (libro->cantidadPalabras)) * log(libreria->totalArchivos / totalLibrosConPalabra);
-            recorrer = nextList(listaPalabras);
+            palabra = recorrer->value;
+            totalLibrosConPalabra = contarDocumentosConPalabra(libreria, palabra->word);
+            //palabra->relevancia = ((palabra->apariciones) / (libro->cantidadPalabras)) * log(libreria->totalArchivos / totalLibrosConPalabra);
+            recorrer = nextTreeMap(libreria->mapaFrecuencia);
         }
     }
     else 
@@ -457,21 +461,20 @@ void mostrarPalabrasMayorRelevancia(tipoLibreria *libreria, char *titulo)
         return;
     }
 
+    tipoPalabra *palabra;
     int cont = 0;
 
-    if (searchMap(libreria->mapaTitulos, titulo) != NULL)
-    {
-        List *listaPalabras = searchMap(libreria->mapaTitulos, titulo);
-        tipoPalabra *recorrer = firstList(listaPalabras);
+    TreeMap *mapaFrecuencias = searchMap(libreria->mapaTitulos, titulo);
+    Pair *aux = firstTreeMap(libreria->mapaFrecuencia);
 
-        while (recorrer != NULL)
-        {
-            printf("Palabra: %s\n", recorrer->word);
-            printf("Relevancia: %.0f\n", recorrer->relevancia);
-            recorrer = nextList(listaPalabras);
-            cont++;
-            if (cont == 10) break;
-        }
+    while (aux != NULL)
+    {
+        palabra = aux->value;
+        printf("Palabra: %-20s", palabra->word);
+        printf("Relevancia: %-20.0f\n", palabra->relevancia);
+        aux = nextTreeMap(libreria->mapaFrecuencia);
+        cont++;
+        if (cont == 10) break;
     }
 }
 
@@ -494,11 +497,17 @@ void buscarPalabra(tipoLibreria *libreria, char *palabra)
     else printf("Ningún libro contiene esta palabra en su contenido.\n");
 }
 
+//Función para ver el contexto de la palabra ingresada cada vez que se encuentra
 void palabraEnContexto(tipoLibreria *libreria, char *titulo, char *palabra)
 {
     if (searchTreeMap(libreria->mapaLibros, titulo) != NULL)
     {
-        
+        Pair *aux = searchTreeMap(libreria->mapaLibros, titulo);
+        tipoLibro *libro = aux->value;
+        const char *txt = ".txt";
+        char archivo[100];
+        char id = libro->id + '0';
+        strcat(strcpy(archivo, &id), txt);        
     }
     else 
     {
