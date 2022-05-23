@@ -267,6 +267,9 @@ void cargarDocumentos(tipoLibreria *libreria, char *todosLosArchivos)
             libro->IDlibro = (int*) malloc(1 * sizeof(int));
             libro->IDlibro = &(libro->id);
 
+            //Se usa el fseek para moverse directamente hasta el inicio del título del libro en la primera línea del archivo
+            fseek(archivo, 33, SEEK_SET);
+
             //Se lee la primera línea del archivo y se guarda como el título del libro
             while (strcmp(fgets(cadena, 1023, archivo), "\n") != 0)
             {
@@ -431,7 +434,7 @@ void mostrarPalabrasMayorRelevancia(tipoLibreria *libreria, char *titulo)
     if (searchTreeMap(libreria->mapaLibros, titulo) != NULL)
     {
         Pair *aux = searchTreeMap(libreria->mapaLibros, titulo);
-        tipoLibro *libro;
+        tipoLibro *libro = aux->value;
 
         List *listaPalabras = searchMap(libreria->mapaTitulos, titulo);
         tipoPalabra *recorrer = firstList(listaPalabras);
@@ -488,7 +491,15 @@ void buscarPalabra(tipoLibreria *libreria, char *palabra)
 
 void palabraEnContexto(tipoLibreria *libreria, char *titulo, char *palabra)
 {
-    return;
+    if (searchTreeMap(libreria->mapaLibros, titulo) != NULL)
+    {
+        
+    }
+    else 
+    {
+        printf("El título ingresado no pertenece a ningún libro.\n");
+        return;
+    }
 }
 
 void mostrarOpcionesMenu()
@@ -570,9 +581,10 @@ int main()
             }
             case 7:
             {
-                printf("\nIngrese el título de un libro y una palabra a buscar para conocer sus apariciones en el contexto del libro:\n");
+                printf("\nIngrese el título de un libro:\n");
                 char *titulo = NULL;
                 leerChar(&titulo);
+                printf("\nIngrese una palabra a buscar para conocer sus apariciones en el contexto del libro:\n");
                 char *palabra = NULL;
                 leerChar(&palabra);
                 palabraEnContexto(libreria, titulo, palabra);
